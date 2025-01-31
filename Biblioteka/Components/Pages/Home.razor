@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using System.IO
 @using System.Diagnostics
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
 <h3>File Explorer</h3>
@@ -9,17 +10,17 @@
     <label>Enter directory path:</label>
     <input @bind="directoryPath" placeholder="C:\Path\To\Directory" />
     <button @onclick="LoadDirectory">Load Directory</button>
+    <button @onclick="OpenFolderDialog">Browse...</button>
 </div>
 
 <div style="display: flex; gap: 20px;">
-    <!-- Список файлов и папок -->
     <div style="flex: 1; max-width: 35vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
         @if (directoryContents != null)
         {
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 400px;">Name</th>  <!-- Уменьшена ширина столбца Name -->
+                        <th style="width: 400px;">Name</th>
                         <th>Type</th>
                         <th>Size</th>
                         <th>Last Modified</th>
@@ -27,9 +28,7 @@
                 </thead>
                 <tbody>
                     <tr @onclick="OnBackClick">
-                        <td>
-                            ../
-                        </td>
+                        <td>../</td>
                     </tr>
                     @foreach (var item in directoryContents)
                     {
@@ -46,8 +45,6 @@
             </table>
         }
     </div>
-
-    <!-- Содержимое выбранного файла -->
     <div style="flex: 2; max-width: 60vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
         @if (selectedFileContent != null)
         {
@@ -62,6 +59,9 @@
 
 @code {
     private int currentCount = 0;
+    private string? directoryPath;
+    private List<DirectoryItem> directoryContents;
+    private string? selectedFileContent;
 
     private void IncrementCount()
     {
@@ -70,19 +70,11 @@
         StateHasChanged();
     }
 
-    private string? currentDirectory;
-    private string? directoryPath;
-    private List<DirectoryItem> directoryContents;
-    private string? selectedFileContent;
-
     private void LoadDirectory()
     {
-        currentDirectory = directoryPath;
         if (Directory.Exists(directoryPath))
         {
             directoryContents = new List<DirectoryItem>();
-
-            // Получаем список папок
             foreach (var dir in Directory.GetDirectories(directoryPath))
             {
                 var dirInfo = new DirectoryInfo(dir);
@@ -93,8 +85,6 @@
                         LastModified = dirInfo.LastWriteTime
                     });
             }
-
-            // Получаем список файлов
             foreach (var file in Directory.GetFiles(directoryPath))
             {
                 var fileInfo = new FileInfo(file);
@@ -115,7 +105,7 @@
 
     private void OnBackClick()
     {
-        directoryPath = string.Join(@"\", currentDirectory.Split(@"\").SkipLast(1)) + @"/";
+        directoryPath = string.Join(@"\", directoryPath.Split(@"\").SkipLast(1)) + @"/";
         LoadDirectory();
     }
 
@@ -123,15 +113,22 @@
     {
         if (item.IsDirectory)
         {
-            // Переход в папку
             directoryPath = Path.Combine(directoryPath, item.Name);
             LoadDirectory();
-            currentDirectory = directoryPath;
         }
         else
         {
-            // Чтение содержимого файла
             selectedFileContent = File.ReadAllText(Path.Combine(directoryPath, item.Name));
+        }
+    }
+
+    private async Task OpenFolderDialog()
+    {
+        var path = await JSRuntime.InvokeAsync<string>("openFileDialog");
+        if (!string.IsNullOrEmpty(path))
+        {
+            directoryPath = path;
+            LoadDirectory();
         }
     }
 
