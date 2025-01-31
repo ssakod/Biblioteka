@@ -1,0 +1,157 @@
+﻿@page "/"
+@using System.IO
+@using System.Diagnostics
+@rendermode InteractiveServer
+
+<h3>File Explorer</h3>
+
+<div>
+    <label>Enter directory path:</label>
+    <input @bind="directoryPath" placeholder="C:\Path\To\Directory" />
+    <button @onclick="LoadDirectory">Load Directory</button>
+</div>
+
+<div style="display: flex; gap: 20px;">
+    <!-- Список файлов и папок -->
+    <div style="flex: 1; max-width: 35vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+        @if (directoryContents != null)
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 400px;">Name</th>  <!-- Уменьшена ширина столбца Name -->
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Last Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr @onclick="OnBackClick">
+                        <td>
+                            ../
+                        </td>
+                    </tr>
+                    @foreach (var item in directoryContents)
+                    {
+                        <tr @onclick="() => OnItemClick(item)">
+                            <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                @item.Name
+                            </td>
+                            <td>@(item.IsDirectory ? "Directory" : "File")</td>
+                            <td>@(item.IsDirectory ? "" : FormatSize(item.Size))</td>
+                            <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <!-- Содержимое выбранного файла -->
+    <div style="flex: 2; max-width: 60vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+        @if (selectedFileContent != null)
+        {
+            <h4>File Content:</h4>
+            <pre>@selectedFileContent</pre>
+        }
+    </div>
+</div>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<p role="status">Current count: @currentCount</p>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+        Trace.WriteLine(3413245134);
+        StateHasChanged();
+    }
+
+    private string? currentDirectory;
+    private string? directoryPath;
+    private List<DirectoryItem> directoryContents;
+    private string? selectedFileContent;
+
+    private void LoadDirectory()
+    {
+        currentDirectory = directoryPath;
+        if (Directory.Exists(directoryPath))
+        {
+            directoryContents = new List<DirectoryItem>();
+
+            // Получаем список папок
+            foreach (var dir in Directory.GetDirectories(directoryPath))
+            {
+                var dirInfo = new DirectoryInfo(dir);
+                directoryContents.Add(new DirectoryItem
+                    {
+                        Name = dirInfo.Name,
+                        IsDirectory = true,
+                        LastModified = dirInfo.LastWriteTime
+                    });
+            }
+
+            // Получаем список файлов
+            foreach (var file in Directory.GetFiles(directoryPath))
+            {
+                var fileInfo = new FileInfo(file);
+                directoryContents.Add(new DirectoryItem
+                    {
+                        Name = fileInfo.Name,
+                        IsDirectory = false,
+                        Size = fileInfo.Length,
+                        LastModified = fileInfo.LastWriteTime
+                    });
+            }
+        }
+        else
+        {
+            directoryContents = null;
+        }
+    }
+
+    private void OnBackClick()
+    {
+        directoryPath = string.Join(@"\", currentDirectory.Split(@"\").SkipLast(1)) + @"/";
+        LoadDirectory();
+    }
+
+    private void OnItemClick(DirectoryItem item)
+    {
+        if (item.IsDirectory)
+        {
+            // Переход в папку
+            directoryPath = Path.Combine(directoryPath, item.Name);
+            LoadDirectory();
+            currentDirectory = directoryPath;
+        }
+        else
+        {
+            // Чтение содержимого файла
+            selectedFileContent = File.ReadAllText(Path.Combine(directoryPath, item.Name));
+        }
+    }
+
+    private string FormatSize(long size)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private class DirectoryItem
+    {
+        public string Name { get; set; }
+        public bool IsDirectory { get; set; }
+        public long Size { get; set; }
+        public DateTime LastModified { get; set; }
+    }
+}
