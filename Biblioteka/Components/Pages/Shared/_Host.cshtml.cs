@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Biblioteka.Components.Layout
+namespace Biblioteka.Components.Pages.Shared
 {
     public class _HostModel : PageModel
     {
