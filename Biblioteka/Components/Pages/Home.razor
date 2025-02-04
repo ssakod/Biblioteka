@@ -5,22 +5,29 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
-<h3>File Explorer</h3>
+<h3>Библиотека</h3>
 
-<div>
-    <label>Enter directory path:</label>
-    <input @bind="directoryPath" ="C:\Path\To\Directory" />
-    <button @onclick="LoadDirectory">Load Directory</button>
+<div class="visualSettingShapka">
+    <button @onclick="CreateNewFolder" class="CreateNewFolder-btn">Создать новую папку</button>
+    <input type="text" @bind="newFolderName" placeholder="Введите имя папки" />
+    <InputFile OnChange="OnFileSelected" />
+    <button @onclick="UploadFile" class="btn btn-secondary">Upload File</button>
+</div>
+
+<div> 
+    <label>Введите путь к файлу:</label>
+    <input @bind="directoryPath" placeholder="C:\Path\To\Directory" />
+    <button @onclick="LoadDirectory">Загрузить</button>
 </div>
 
 <div style="display: flex; gap: 20px;">
-    <div style="flex: 1; max-width: 35vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+    <div class="visualSettingList">
         @if (directoryContents != null)
         {
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 400px;">Name</th>
+                        <th style="width: 350px;">Name</th>
                         <th>Type</th>
                         <th>Size</th>
                         <th>Last Modified</th>
@@ -45,7 +52,7 @@
             </table>
         }
     </div>
-    <div style="flex: 2; max-width: 60vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+    <div class="visualSettingFileContent">
         @if (selectedFileContent != null)
         {
             <h4>File Content:</h4>
@@ -54,21 +61,18 @@
     </div>
 </div>
 
-<div>
-    <button @onclick="CreateNewFolder" class="btn btn-secondary">Create New Folder</button>
-    <InputFile OnChange="OnFileSelected" />
-    <button @onclick="UploadFile" class="btn btn-secondary">Upload File</button>
-</div>
+
 
 <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
 <p role="status">Current count: @currentCount</p>
 
 @code {
     private int currentCount = 0;
-    private string? directoryPath;
+    private string? directoryPath = @"C:\Users\dok4s\source\repos\Biblioteka\Biblioteka\wwwroot";
     private List<DirectoryItem> directoryContents;
     private string? selectedFileContent;
     private IBrowserFile? selectedFile;
+    private string? newFolderName;  // Новая переменная для имени папки
 
     private async Task IncrementCount()
     {
@@ -143,11 +147,17 @@
 
     private async Task CreateNewFolder()
     {
-        if (!string.IsNullOrEmpty(directoryPath))
+        if (!string.IsNullOrEmpty(directoryPath) && !string.IsNullOrEmpty(newFolderName))
         {
-            var newFolderPath = Path.Combine(directoryPath, "NewFolder");
+            var newFolderPath = Path.Combine(directoryPath, newFolderName);
             Directory.CreateDirectory(newFolderPath);
+            newFolderName = "";  // Очищаем поле ввода после создания папки
             await LoadDirectory();  // Перезагружаем содержимое директории
+        }
+        else
+        {
+            // Обработка случая, если не задано имя папки
+            Console.WriteLine("Please enter a valid folder name.");
         }
     }
 
