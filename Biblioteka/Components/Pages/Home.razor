@@ -5,13 +5,11 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
-<h3>Библиотека</h3>
-
 <div class="visualSettingShapka">
-    <button @onclick="CreateNewFolder" class="CreateNewFolder-btn">Создать новую папку</button>
-    <input type="text" @bind="newFolderName" placeholder="Введите имя папки" />
+    <input type="text" class="CreateNewFolder-input" @bind="newFolderName" placeholder="Введите имя папки" />
+    <button @onclick="CreateNewFolder" class="CreateNewFolder-btn">Создать новую папку</button> @*тут*@
     <InputFile OnChange="OnFileSelected" />
-    <button @onclick="UploadFile" class="btn btn-secondary">Upload File</button>
+    <button @onclick="UploadFile" class="btn btn-secondary">Загрузить</button>
 </div>
 
 <div> 
@@ -68,7 +66,7 @@
 
 @code {
     private int currentCount = 0;
-    private string? directoryPath = @"C:\Users\dok4s\source\repos\Biblioteka\Biblioteka\wwwroot";
+    private string? directoryPath = @"C:\Users\dok4s\source\repos\Biblioteka\Biblioteka\wwwroot\Library";
     private List<DirectoryItem> directoryContents;
     private string? selectedFileContent;
     private IBrowserFile? selectedFile;
