@@ -5,25 +5,31 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
-<h3>File Explorer</h3>
+<h3>Библиотека</h3>
 
 <div>
-    <label>Enter directory path:</label>
-    <input @bind="directoryPath" ="C:\Path\To\Directory" />
-    <button @onclick="LoadDirectory">Load Directory</button>
+    <label>Путь к папке:</label>
+    <input @bind="directoryPath" placeholder="C:\Path\To\Directory" />
+    <button @onclick="LoadDirectory">Выбрать папку</button>
+</div>
+
+<div>
+    <button @onclick="CreateNewFolder" class="btn btn-secondary">Создать папку</button>
+    <InputFile OnChange="OnFileSelected" />
+    <button @onclick="UploadFile" class="btn btn-secondary">Загрузить файл</button>
 </div>
 
 <div style="display: flex; gap: 20px;">
-    <div style="flex: 1; max-width: 35vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+    <div style="flex: 1; max-width: 35vw; height: 700px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
         @if (directoryContents != null)
         {
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 400px;">Name</th>
-                        <th>Type</th>
-                        <th>Size</th>
-                        <th>Last Modified</th>
+                        <th style="width: 400px;">Имя файла</th>
+                        <th>Тип</th>
+                        <th>Размер</th>
+                        <th>Дата изменения</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -36,7 +42,7 @@
                             <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 @item.Name
                             </td>
-                            <td>@(item.IsDirectory ? "Directory" : "File")</td>
+                            <td>@(item.IsDirectory ? "Папка" : "Файл")</td>
                             <td>@(item.IsDirectory ? "" : FormatSize(item.Size))</td>
                             <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm:ss")</td>
                         </tr>
@@ -45,23 +51,20 @@
             </table>
         }
     </div>
-    <div style="flex: 2; max-width: 60vw; height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
-        @if (selectedFileContent != null)
+    <div style="flex: 2; max-width: 60vw; height: 700px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+        @if (isPdf)
         {
-            <h4>File Content:</h4>
+            <embed src="@($"Library/{Path.GetFileName(selectedFilePath)}")"
+                   style="width: 100%; height: 100%;" />
+        }
+        else if (selectedFileContent != null)
+        {
+            <h4>Содержимое файла:</h4>
             <pre>@selectedFileContent</pre>
         }
     </div>
-</div>
 
-<div>
-    <button @onclick="CreateNewFolder" class="btn btn-secondary">Create New Folder</button>
-    <InputFile OnChange="OnFileSelected" />
-    <button @onclick="UploadFile" class="btn btn-secondary">Upload File</button>
 </div>
-
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
-<p role="status">Current count: @currentCount</p>
 
 @code {
     private int currentCount = 0;
@@ -69,13 +72,8 @@
     private List<DirectoryItem> directoryContents;
     private string? selectedFileContent;
     private IBrowserFile? selectedFile;
-
-    private async Task IncrementCount()
-    {
-        currentCount++;
-        Trace.WriteLine(3413245134);
-        StateHasChanged();
-    }
+    private string? selectedFilePath;
+    private bool isPdf;
 
     private async Task LoadDirectory()
     {
@@ -116,22 +114,9 @@
         LoadDirectory();
     }
 
-    private void OnItemClick(DirectoryItem item)
-    {
-        if (item.IsDirectory)
-        {
-            directoryPath = Path.Combine(directoryPath, item.Name);
-            LoadDirectory();
-        }
-        else
-        {
-            selectedFileContent = File.ReadAllText(Path.Combine(directoryPath, item.Name));
-        }
-    }
-
     private string FormatSize(long size)
     {
-        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        string[] sizes = { "Б", "КБ", "МБ", "ГБ", "ТБ" };
         int order = 0;
         while (size >= 1024 && order < sizes.Length - 1)
         {
@@ -145,7 +130,7 @@
     {
         if (!string.IsNullOrEmpty(directoryPath))
         {
-            var newFolderPath = Path.Combine(directoryPath, "NewFolder");
+            var newFolderPath = Path.Combine(directoryPath, "Новая папка");
             Directory.CreateDirectory(newFolderPath);
             await LoadDirectory();  // Перезагружаем содержимое директории
         }
@@ -168,7 +153,6 @@
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
-        Console.WriteLine($"File selected: {selectedFile?.Name}");
     }
 
     private class DirectoryItem
@@ -178,4 +162,45 @@
         public long Size { get; set; }
         public DateTime LastModified { get; set; }
     }
+
+    private void OnItemClick(DirectoryItem item)
+    {
+        var fullPath = Path.Combine(directoryPath, item.Name);
+        var extension = Path.GetExtension(item.Name).ToLower();
+
+        if (item.IsDirectory)
+        {
+            directoryPath = fullPath;
+            LoadDirectory();
+        }
+        else
+        {
+            selectedFileContent = null; // Reset text content
+            selectedFilePath = null;    // Reset PDF path
+            isPdf = false;              // Reset flag
+
+            if (extension == ".txt")
+            {
+                selectedFileContent = File.ReadAllText(fullPath);
+            }
+            else if (extension == ".pdf")
+            {
+                selectedFilePath = fullPath;
+                isPdf = true;
+            }
+            else if (extension == ".docx")
+            {
+                selectedFileContent = ReadDocxContent(fullPath);
+            }
+        }
+    }
+
+    private string ReadDocxContent(string filePath)
+    {
+        using (var doc = Xceed.Words.NET.DocX.Load(filePath))
+        {
+            return string.Join("\n", doc.Paragraphs.Select(p => p.Text));
+        }
+    }
+
 }
