@@ -54,7 +54,7 @@
                     }
                 </tbody>
             </table>
-        }
+        } 
     </div>
     <div style="flex: 2; max-width: 60vw; height: 700px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
         @if (isPdf)
@@ -68,6 +68,8 @@
             <pre>@selectedFileContent</pre>
         }
     </div>
+</div>
+
 
 
 @code {
@@ -78,6 +80,7 @@
     private IBrowserFile? selectedFile;
     private string? selectedFilePath;
     private bool isPdf;
+    private string? newFolderName;
 
     private async Task LoadDirectory()
     {
