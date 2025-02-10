@@ -70,7 +70,7 @@ h1:focus {
 .visualSettingList {
     flex: 1;
     max-width: 55vw;
-    height: 500px;
+    height: 700px;
     overflow-y: auto;
     border: 2px solid #ddd;
     padding: 10px;
@@ -78,24 +78,22 @@ h1:focus {
 
 .visualSettingFileContent {
     flex: 2;
-    max-width: 45vw;
-    height: 500px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
+    max-width: 60vw;
+    height: 700px;
+    border: 0px solid #ddd;
     padding: 10px;
 }
-
-.visualSettingShapka {
+ .visualSettingShapka {
     margin-bottom: 25px;
 }
 .CreateNewFolder-btn {
     appearance: none;
-    height: 40px;
+    height: 35px;
     border: 0;
     border-radius: 5px;
     background: #4676D7;
     color: #fff;
-    padding: 8px 16px;
+    padding: 4px 11px;
     font-size: 16px;
 }
 
@@ -109,5 +107,23 @@ h1:focus {
 }
 
 .CreateNewFolder-input {
-    height: 40px;  
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-variant: tabular-nums;
+    list-style: none;
+    font-feature-settings: 'tnum';
+    position: relative;
+    display: inline-block;
+    width: 15%;
+    min-width: 0;
+    padding: 4px 11px;
+    color: rgba(0, 0, 0, 0.85);
+    font-size: 14px;
+    line-height: 1.5715;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #d9d9d9;
+    border-radius: 2px;
+    transition: all 0.3s;
 }

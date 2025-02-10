@@ -18,11 +18,6 @@
     <button @onclick="LoadDirectory">Загрузить</button>
 </div>
 
-<div>
-    <button @onclick="CreateNewFolder" class="btn btn-secondary">Создать папку</button>
-    <InputFile OnChange="OnFileSelected" />
-    <button @onclick="UploadFile" class="btn btn-secondary">Загрузить файл</button>
-</div>
 
 <div style="display: flex; gap: 20px;">
     <div class="visualSettingList">
@@ -54,9 +49,9 @@
                     }
                 </tbody>
             </table>
-        } 
+        }
     </div>
-    <div style="flex: 2; max-width: 60vw; height: 700px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+    <div class="visualSettingFileContent">
         @if (isPdf)
         {
             <embed src="@($"Library/{Path.GetFileName(selectedFilePath)}")"
@@ -137,7 +132,7 @@
     {
         if (!string.IsNullOrEmpty(directoryPath) && !string.IsNullOrEmpty(newFolderName))
         {
-            var newFolderPath = Path.Combine(directoryPath, "Новая папка");
+            var newFolderPath = Path.Combine(directoryPath, newFolderName);
             Directory.CreateDirectory(newFolderPath);
             newFolderName = "";  // Очищаем поле ввода после создания папки
             await LoadDirectory();  // Перезагружаем содержимое директории
