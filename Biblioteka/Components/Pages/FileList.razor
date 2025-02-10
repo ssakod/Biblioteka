@@ -1,0 +1,37 @@
+﻿@page "/file-list"
+@using System.IO
+
+<h3>Uploaded Files</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>File Name</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var file in files)
+        {
+            <tr>
+                <td>@file</td>
+                <td>
+                    <a href="/Uploads/@file" target="_blank" class="btn btn-primary">Read</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<string> files = new();
+
+    protected override void OnInitialized()
+    {
+        var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads");
+        if (Directory.Exists(uploadPath))
+        {
+            files = Directory.GetFiles(uploadPath).Select(Path.GetFileName).ToList();
+        }
+    }
+}
