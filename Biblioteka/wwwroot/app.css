@@ -74,6 +74,7 @@ h1:focus {
     overflow-y: auto;
     border: 2px solid #ddd;
     padding: 10px;
+    position: relative;
 }
 
 .visualSettingFileContent {
@@ -126,4 +127,11 @@ h1:focus {
     border: 1px solid #d9d9d9;
     border-radius: 2px;
     transition: all 0.3s;
+}
+
+#backBtn {
+    position: sticky;
+    margin-top: 0px;
+    margin-left: 0px;
+    margin-bottom: 10px;
 }

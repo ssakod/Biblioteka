@@ -1,61 +1,38 @@
 ﻿@page "/"
 @using System.IO
 @using System.Diagnostics
+@using AntDesign.TableModels
 @using Microsoft.AspNetCore.Components.Forms
+@using AntDesign
+@using System.ComponentModel
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
+@inherits ComponentBase
 
 <div class="visualSettingShapka">
-    <input type="text" class="CreateNewFolder-input" @bind="newFolderName" placeholder="Введите имя папки" />
-    <button @onclick="CreateNewFolder" class="CreateNewFolder-btn">Создать новую папку</button> @*тут*@
-    <InputFile OnChange="OnFileSelected" />
-    <button @onclick="UploadFile" class="btn btn-secondary">Загрузить</button>
+    <Input Placeholder="Введите имя папки" @bind-Value="newFolderName" Style="width: 300px;" />
+    <Button Type="ButtonType.Primary" OnClick="CreateNewFolder">Создать папку</Button>
+    <Upload OnChange="(e) => OnFileSelected(e)"/>
+    <Button Type="ButtonType.Default" OnClick="UploadFile">Загрузить</Button>
 </div>
 
-<div> 
-    <label>Введите путь к файлу:</label>
-    <input @bind="directoryPath" placeholder="C:\Path\To\Directory" />
-    <button @onclick="LoadDirectory">Загрузить</button>
-</div>
-
-
+<Button Type="ButtonType.Default" Id="backBtn" OnClick="OnBack">Назад</Button>
 <div style="display: flex; gap: 20px;">
     <div class="visualSettingList">
         @if (directoryContents != null)
         {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th style="width: 400px;">Имя файла</th>
-                        <th>Тип</th>
-                        <th>Размер</th>
-                        <th>Дата изменения</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr @onclick="OnBackClick">
-                        <td>../</td>
-                    </tr>
-                    @foreach (var item in directoryContents)
-                    {
-                        <tr @onclick="() => OnItemClick(item)">
-                            <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                @item.Name
-                            </td>
-                            <td>@(item.IsDirectory ? "Папка" : "Файл")</td>
-                            <td>@(item.IsDirectory ? "" : FormatSize(item.Size))</td>
-                            <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <Table TItem="DirectoryItem" HidePagination="true" OnRow="OnRow" @bind-SelectedRows="selectedData" DataSource="directoryContents">
+                <ColumnDefinitions Context="row">
+                    <GenerateColumns HideColumnsByName="columnToHide" Definitions="@((n,c) => { c.Sortable = true; })"/>
+                </ColumnDefinitions>
+            </Table>
         }
     </div>
+
     <div class="visualSettingFileContent">
         @if (isPdf)
         {
-            <embed src="@($"Library/{Path.GetFileName(selectedFilePath)}")"
-                   style="width: 100%; height: 100%;" />
+            <embed src="@($"Library/{Path.GetFileName(selectedFilePath)}")" style="width: 100%; height: 100%;" />
         }
         else if (selectedFileContent != null)
         {
@@ -65,44 +42,40 @@
     </div>
 </div>
 
-
-
 @code {
-    private int currentCount = 0;
     private string? directoryPath = @"C:\Users\dok4s\source\repos\Biblioteka\Biblioteka\wwwroot\Library";
     private List<DirectoryItem> directoryContents;
     private string? selectedFileContent;
-    private IBrowserFile? selectedFile;
+    private UploadFileItem? selectedFile;
     private string? selectedFilePath;
     private bool isPdf;
     private string? newFolderName;
+    IEnumerable<DirectoryItem> selectedData = [];
 
+    string[] columnToHide = ["IsDirectory"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDirectory();
+    }
+    private void OnBack()
+    {
+        directoryPath = string.Join(@"\", directoryPath.Split(@"\").SkipLast(1)) + @"/";
+        LoadDirectory();
+    }
     private async Task LoadDirectory()
     {
         if (Directory.Exists(directoryPath))
         {
-            directoryContents = new List<DirectoryItem>();
-            foreach (var dir in Directory.GetDirectories(directoryPath))
-            {
-                var dirInfo = new DirectoryInfo(dir);
-                directoryContents.Add(new DirectoryItem
-                    {
-                        Name = dirInfo.Name,
-                        IsDirectory = true,
-                        LastModified = dirInfo.LastWriteTime
-                    });
-            }
-            foreach (var file in Directory.GetFiles(directoryPath))
-            {
-                var fileInfo = new FileInfo(file);
-                directoryContents.Add(new DirectoryItem
-                    {
-                        Name = fileInfo.Name,
-                        IsDirectory = false,
-                        Size = fileInfo.Length,
-                        LastModified = fileInfo.LastWriteTime
-                    });
-            }
+            directoryContents = Directory.GetFileSystemEntries(directoryPath)
+                .Select(path => new FileInfo(path))
+                .Select(info => new DirectoryItem
+                {
+                    Name = info.Name,
+                    IsDirectory = info.Attributes.HasFlag(FileAttributes.Directory),
+                    Size = info.Attributes.HasFlag(FileAttributes.Directory) ? "0" : FormatSize(info.Length),
+                    LastModified = info.LastWriteTime
+                }).ToList();
         }
         else
         {
@@ -110,12 +83,19 @@
         }
     }
 
-    private void OnBackClick()
+    private async Task CreateNewFolder()
     {
-        directoryPath = string.Join(@"\", directoryPath.Split(@"\").SkipLast(1)) + @"/";
-        LoadDirectory();
+        if (!string.IsNullOrEmpty(newFolderName))
+        {
+            Directory.CreateDirectory(Path.Combine(directoryPath, newFolderName));
+            newFolderName = "";
+            await LoadDirectory();
+        }
     }
-
+    public Stream OpenReadStream(string filePath)
+    {
+        return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+    }
     private string FormatSize(long size)
     {
         string[] sizes = { "Б", "КБ", "МБ", "ГБ", "ТБ" };
@@ -127,81 +107,63 @@
         }
         return $"{size:0.##} {sizes[order]}";
     }
-
-    private async Task CreateNewFolder()
-    {
-        if (!string.IsNullOrEmpty(directoryPath) && !string.IsNullOrEmpty(newFolderName))
-        {
-            var newFolderPath = Path.Combine(directoryPath, newFolderName);
-            Directory.CreateDirectory(newFolderPath);
-            newFolderName = "";  // Очищаем поле ввода после создания папки
-            await LoadDirectory();  // Перезагружаем содержимое директории
-        }
-        else
-        {
-            // Обработка случая, если не задано имя папки
-            Console.WriteLine("Please enter a valid folder name.");
-        }
-    }
-
     private async Task UploadFile()
     {
-        if (selectedFile != null && !string.IsNullOrEmpty(directoryPath))
+        if (selectedFile != null)
         {
-            var filePath = Path.Combine(directoryPath, selectedFile.Name);
-            using (var stream = selectedFile.OpenReadStream())
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            var filePath = Path.Combine(directoryPath, selectedFile.FileName);
+            using (Stream stream = OpenReadStream(filePath))
             {
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    string content = reader.ReadToEnd();
+                }
+                using var fileStream = new FileStream(filePath, FileMode.Create);
                 await stream.CopyToAsync(fileStream);
             }
-            await LoadDirectory();  // Перезагружаем содержимое директории
+            await LoadDirectory();
         }
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    private async Task OnFileSelected(UploadInfo e)
     {
         selectedFile = e.File;
     }
 
-    private class DirectoryItem
-    {
-        public string Name { get; set; }
-        public bool IsDirectory { get; set; }
-        public long Size { get; set; }
-        public DateTime LastModified { get; set; }
-    }
-
-    private void OnItemClick(DirectoryItem item)
-    {
-        var fullPath = Path.Combine(directoryPath, item.Name);
-        var extension = Path.GetExtension(item.Name).ToLower();
-
-        if (item.IsDirectory)
+    private Dictionary<string, object> OnRow(RowData<DirectoryItem> ditem) => new()
         {
-            directoryPath = fullPath;
-            LoadDirectory();
-        }
-        else
-        {
-            selectedFileContent = null; // Reset text content
-            selectedFilePath = null;    // Reset PDF path
-            isPdf = false;              // Reset flag
+            ["onclick"] = () =>
+            {
+                DirectoryItem item = ditem.Data;
+                var fullPath = Path.Combine(directoryPath, item.Name);
+                var extension = Path.GetExtension(item.Name).ToLower();
 
-            if (extension == ".txt")
-            {
-                selectedFileContent = File.ReadAllText(fullPath);
+                if (item.IsDirectory)
+                {
+                    directoryPath = fullPath;
+                    LoadDirectory();
+                }
+                else
+                {
+                    if (extension == ".txt")
+                    {
+                        isPdf = false;
+                        selectedFileContent = File.ReadAllText(fullPath);
+                    }
+                    else if (extension == ".pdf")
+                    {
+                        selectedFilePath = fullPath;
+                        isPdf = true;
+                    }
+                    else if (extension == ".docx")
+                    {
+                        isPdf = false;
+                        selectedFileContent = ReadDocxContent(fullPath);
+                    }
+                }
+                StateHasChanged();
             }
-            else if (extension == ".pdf")
-            {
-                selectedFilePath = fullPath;
-                isPdf = true;
-            }
-            else if (extension == ".docx")
-            {
-                selectedFileContent = ReadDocxContent(fullPath);
-            }
-        }
-    }
+        };
 
     private string ReadDocxContent(string filePath)
     {
@@ -210,5 +172,15 @@
             return string.Join("\n", doc.Paragraphs.Select(p => p.Text));
         }
     }
-
+    
+    private class DirectoryItem
+    {
+        [DisplayName("Имя")]
+        public string Name { get; set; }
+        public bool IsDirectory { get; set; }
+        [DisplayName("Размер")]
+        public string Size { get; set; }
+        [DisplayName("Дата последнего изменения")]
+        public DateTime LastModified { get; set; }
+    }
 }
