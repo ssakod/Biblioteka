@@ -79,7 +79,8 @@ h1:focus {
 
 .visualSettingFileContent {
     flex: 2;
-    max-width: 60vw;
+    overflow-y: auto;
+    max-width: 50vw;
     height: 700px;
     border: 0px solid #ddd;
     padding: 10px;
@@ -134,4 +135,9 @@ h1:focus {
     margin-top: 0px;
     margin-left: 0px;
     margin-bottom: 10px;
+}
+
+#fileContent{
+    white-space: pre-wrap;
+    width: 100%;
 }
